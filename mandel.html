@@ -1,0 +1,168 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mandelbrot (JS WebGL)</title>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      margin: 0;
+    }
+    body {
+      color: #444;
+    }
+    h1 {
+      font-family: Georgia,sans-serif;
+      margin: 0px;
+    }
+    a {
+      color: #185b7c;
+    }
+    a:hover {
+      background-color: #296c8d;
+      color: #fff;
+    }
+    #types {
+      padding: 0 0 10px 0;
+      font-size: 120%;
+      text-align: center;
+    }
+    #everything {
+      width: 600px;
+      margin: 0 auto;
+    }
+    #header {
+      border-bottom: 1px solid #aaa;
+      margin: 0 0 10px 0;
+    }
+    #footer {
+      margin: 10px 0 0 0;
+      border-top: 1px solid #aaa;
+      padding: 5px 0 10px 0;
+      color: #888;
+      font-size: 90%;
+    }
+    #navigation-info {
+      position: absolute;
+      margin-top: -600px;
+      padding: 10px;
+      color: #fff;
+      font-size: 140%;
+      width: 600px;
+      text-align: center;
+    }
+  </style>
+  <script id="shader-fs" type="x-shader/x-fragment">
+    precision highp float;
+
+    uniform vec2 un_zoom;
+    uniform vec2 un_delta;
+
+    uniform int un_type;
+
+    varying vec4 position;
+
+    vec2 step_up_1(vec2 z) {
+      float xtemp = z.x * z.x - z.y * z.y + position.x * un_zoom.x + un_delta.x;
+      z.y = 2.0 * z.x * z.y + position.y * un_zoom.y + un_delta.y;
+      z.x = xtemp;
+      return z;
+    }
+
+    vec2 step_up_2(vec2 z) {
+      float xtemp = z.x * z.x * z.x
+                  - 3.0 * z.x * z.y * z.y
+                  + position.x * un_zoom.x + un_delta.x;
+      z.y = 3.0 * z.x * z.x * z.y
+          - z.y * z.y * z.y
+          + position.y * un_zoom.y + un_delta.y;
+      z.x = xtemp;
+      return z;
+    }
+
+    vec2 step_up_3(vec2 z) {
+      float xtemp = z.y * z.y * z.y * z.y
+                  - 6.0 * z.x * z.x * z.y * z.y
+                  + z.x * z.x * z.x * z.x
+                  + position.x * un_zoom.x + un_delta.x;
+      z.y = 4.0 * z.x * z.x * z.x * z.y
+          - 4.0 * z.x * z.y * z.y * z.y
+          + position.y * un_zoom.y + un_delta.y;
+
+      z.x = xtemp;
+      return z;
+    }
+
+    void main(void) {
+      vec2 z = vec2(0.0, 0.0);
+      int step = 0;
+      for (int i = 0; i < 100; ++i) {
+        if (z.x * z.x + z.y * z.y > 4.0) {
+          break;
+        }
+        if (un_type == 2) {
+          z = step_up_2(z);
+        } else if (un_type == 3) {
+          z = step_up_3(z);
+        } else {
+          z = step_up_1(z);
+        }
+        step += 1;
+      }
+
+      float intencity = float(step) / 100.0;
+      if (intencity > 0.99) {
+        gl_FragColor = vec4(0.8 * intencity, 0.0, 0.0, 1.0);
+      } else {
+        gl_FragColor = vec4(intencity, intencity, intencity, 1.0);
+      }
+    }
+  </script>
+  <script id="shader-vs" type="x-shader/x-vertex">
+    attribute vec3 at_position;
+
+    varying vec4 position;
+
+    void main(void) {
+      position = vec4(at_position.xyz, 1.0);
+      gl_Position = position;
+    }
+  </script>
+  <script type="text/javascript" charset="utf-8" src="mandel.js"></script>
+</head>
+<body onload="main();">
+  <div id="everything">
+    <div id="header">
+      <h1>Mandelbrot explorer (WebGL)</h1>
+      <p class="info">
+        Supported browsers: <a href="http://www.khronos.org/webgl/wiki/Getting_a_WebGL_Implementation">http://www.khronos.org/...</a>
+        <br/>
+        Source code: <a href="http://bitbucket.org/petraszd/mandel-webgl">http://bitbucket.org/petraszd/mandel-webgl</a>
+      </p>
+    </div>
+    <div id="content">
+      <div id="types">
+        <input name="type" onchange="changeType(1);" type="radio" value="1" id="type-1" checked="true" />
+        <label for="type-1">z ^ 2 + c</label>
+        &nbsp;&nbsp;
+        <input name="type" onchange="changeType(2);" type="radio" value="2" id="type-2" />
+        <label for="type-2">z ^ 3 + c</label>
+        &nbsp;&nbsp;
+        <input name="type" onchange="changeType(3);" type="radio" value="3" id="type-3" />
+        <label for="type-3">z ^ 4 + c</label>
+      </div>
+    </div>
+      <div>
+        <canvas id="mandel-canvas" width="600" height="600"></canvas>
+        <div id="navigation-info">
+          Click to move; Scroll to zoom in/out;
+        </div>
+      </div>
+    <div id="footer">
+      © Copyright 2010 Petras Zdanavičius (petraszd&lt;secret symbol&gt;gmail&lt;secret dot&gt;com). All Rights Reserved.
+    </div>
+  </div>
+</body>
